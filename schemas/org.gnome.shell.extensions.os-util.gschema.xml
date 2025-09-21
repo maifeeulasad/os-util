@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="os-util@maifee.extension">
   <schema path="/org/gnome/shell/extensions/os-util/" id="org.gnome.shell.extensions.os-util">
-    <key name="mode" type="i">
-      <range min="0" max="4" />
-      <default>0</default>
-      <summary>Display mode</summary>
-      <description>0: Total bps, 1: Total B/s, 2: Up/Down bps, 3: Up/Down B/s, 4: Total downloaded</description>
-    </key>
+          <key name="mode" type="i">
+        <range min="0" max="5" />
+        <default>5</default>
+        <summary>Display mode</summary>
+        <description>0: Total bps, 1: Total B/s, 2: Up/Down bps, 3: Up/Down B/s, 4: Total downloaded, 5: Up/Down/Total</description>
+      </key>
     <key name="fontmode" type="i">
       <range min="0" max="4" />
       <default>0</default>

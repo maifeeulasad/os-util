@@ -1,5 +1,5 @@
 {
-  "description": "OS utility tools for GNOME Shell panel. Currently includes network speed monitoring with multiple display modes.\n\nFeatures:\n -  Network speed monitoring with 5 display modes\n -  Left click to change modes\n -  Middle click to change font size\n -  Right click to reset counter\n -  Activity indicators\n -  Interface filtering",
+  "description": "OS utility tools for GNOME Shell panel. Currently includes network speed monitoring with 6 display modes (default: up/down/total).\n\nFeatures:\n• Network speed monitoring with 6 display modes\n• Default mode shows up speed, down speed, and total\n• Left click to change modes\n• Middle click to change font size\n• Right click to reset counter\n• Activity indicators\n• Interface filtering",
   "name": "OS Util",
   "shell-version": [
     "45",

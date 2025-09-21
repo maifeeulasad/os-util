@@ -14,7 +14,7 @@ export class ConfigManager {
   private config: Config;
 
   private static readonly DEFAULT_CONFIG: Config = {
-    mode: DisplayMode.TOTAL_BPS,
+    mode: DisplayMode.SPLIT_WITH_TOTAL,
     fontMode: 0,
     refreshInterval: 3
   };

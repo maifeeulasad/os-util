@@ -20,7 +20,7 @@ export default class NetSpeedExtension extends Extension {
         this.mode = this._settings.get_int('mode');
         this.fontmode = this._settings.get_int('fontmode');
         
-        console.log(`NetSpeed Monitor enabled: mode ${this.mode}, fontmode ${this.fontmode}`);
+        console.log(`OS Util enabled: mode ${this.mode}, fontmode ${this.fontmode}`);
 
         this.button = new St.Bin({
             style_class: 'panel-button',
@@ -69,7 +69,7 @@ export default class NetSpeedExtension extends Extension {
 
     changeMode(_widget, event) {
         const button = event.get_button();
-        console.log(`NetSpeed Monitor mode change: button ${button}`);
+        console.log(`OS Util mode change: button ${button}`);
         
         if (button === 3 && this.mode === 4) { // Right click: reset downloaded sum
             resetNextCount = true;
@@ -86,7 +86,7 @@ export default class NetSpeedExtension extends Extension {
         }
         else if (button === 1) { // Left click: change mode
             this.mode++;
-            if (this.mode > 4) {
+            if (this.mode > 5) {
                 this.mode = 0;
             }
             this._settings.set_int('mode', this.mode);

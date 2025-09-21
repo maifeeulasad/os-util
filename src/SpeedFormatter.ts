@@ -10,7 +10,9 @@ export enum DisplayMode {
   /** Up & down speed in Bytes per second */
   SPLIT_BYTES = 3,
   /** Total downloaded in Bytes */
-  TOTAL_DOWNLOADED = 4
+  TOTAL_DOWNLOADED = 4,
+  /** Up speed, down speed, and total */
+  SPLIT_WITH_TOTAL = 5
 }
 
 export class SpeedFormatter {
@@ -31,6 +33,7 @@ export class SpeedFormatter {
         break;
       case DisplayMode.TOTAL_BYTES:
       case DisplayMode.SPLIT_BYTES:
+      case DisplayMode.SPLIT_WITH_TOTAL:
         speedMap = ["B/s", "K/s", "M/s", "G/s"];
         break;
       case DisplayMode.TOTAL_DOWNLOADED:
@@ -89,6 +92,9 @@ export class SpeedFormatter {
       case DisplayMode.SPLIT_BYTES:
         return "↓" + this.speedToString(downloadSpeed, mode) + " ↑" + this.speedToString(uploadSpeed, mode);
 
+      case DisplayMode.SPLIT_WITH_TOTAL:
+        return "↓" + this.speedToString(downloadSpeed, mode) + " ↑" + this.speedToString(uploadSpeed, mode) + " ∑" + this.speedToString(totalSpeed, mode);
+
       case DisplayMode.TOTAL_DOWNLOADED:
         const total = totalDownloaded !== undefined ? totalDownloaded : 0;
         return "∑ " + this.speedToString(total, mode);
@@ -114,6 +120,8 @@ export class SpeedFormatter {
         return "Up & down speed in Bytes per second";
       case DisplayMode.TOTAL_DOWNLOADED:
         return "Total downloaded in Bytes";
+      case DisplayMode.SPLIT_WITH_TOTAL:
+        return "Up speed, down speed, and total";
       default:
         return "Unknown mode";
     }

@@ -1,0 +1,12 @@
+{
+  "description": "OS utility tools for GNOME Shell panel. Currently includes network speed monitoring with multiple display modes.\n\nFeatures:\n -  Network speed monitoring with 5 display modes\n -  Left click to change modes\n -  Middle click to change font size\n -  Right click to reset counter\n -  Activity indicators\n -  Interface filtering",
+  "name": "OS Util",
+  "shell-version": [
+    "45",
+    "46",
+    "47"
+  ],
+  "url": "https://github.com/maifeeulasad/os-util",
+  "uuid": "os-util@maifee.extension",
+  "version": 1
+}

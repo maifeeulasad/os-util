@@ -7,16 +7,17 @@ A comprehensive collection of **system utility tools** for Linux, featuring a **
 ### Network Speed Monitor
 - **GNOME Shell Extension** - Shows network speed in your top panel
 - **Real-time monitoring** with 3-second refresh intervals
-- **5 display modes** with easy switching:
+- **6 display modes** with easy switching:
   1. Total net speed in bits per second (bps, Kbps, Mbps, Gbps)
   2. Total net speed in Bytes per second (B/s, K/s, M/s, G/s)
   3. Up & down speed in bits per second (↓Mbps ↑Kbps)
   4. Up & down speed in Bytes per second (↓M/s ↑K/s)
   5. Total downloaded in Bytes with reset capability (∑ MB)
+  6. **Up speed, down speed, and total** (↓M/s ↑K/s ∑2.1M/s) **[DEFAULT]**
 - **Interactive controls**:
   - Left click: Change display modes
   - Middle click: Change font size (5 sizes)
-  - Right click: Reset total counter (mode 4)
+  - Right click: Reset total counter (mode 5)
 - **Activity indicators** (⇅ symbol when speed increases)
 - **Persistent settings** using GSettings
 
@@ -117,16 +118,17 @@ os-util reset
 - **Mode 2**: `↓10.2Mbps ↑2.3Mbps` - Up/down in bits per second
 - **Mode 3**: `↓1.28M/s ↑288K/s` - Up/down in Bytes per second
 - **Mode 4**: `∑ 1.2GB` - Total downloaded (right-click to reset in GNOME)
+- **Mode 5**: `↓1.28M/s ↑288K/s ∑1.57M/s` - Up speed, down speed, and total **[DEFAULT]**
 
 ### GNOME Extension (Panel Integration)
 
 After installation, the extension will appear in your GNOME top panel between the time and system buttons. Interact with it using:
 
-- **Left click**: Cycle through display modes (0-4)
+- **Left click**: Cycle through display modes (0-5)
 - **Middle click**: Change font size (5 different sizes)
 - **Right click**: Reset total download counter (only in mode 4)
 
-The extension will show network speed like: `12.5Mbps`, `↓10.2Mbps ↑2.3Mbps`, or `∑ 1.2GB`
+The extension will show network speed like: `↓1.28M/s ↑288K/s ∑1.57M/s`, `12.5Mbps`, `↓10.2Mbps ↑2.3Mbps`, or `∑ 1.2GB`
 
 ### CLI Application
 
@@ -152,7 +154,7 @@ The CLI application stores configuration in `~/.config/os-util/config.json`:
 
 ```json
 {
-  "mode": 0,
+  "mode": 5,
   "fontMode": 0,
   "refreshInterval": 3
 }

@@ -1,0 +1,38 @@
+{
+  "name": "os-util",
+  "version": "0.0.0",
+  "description": "OS utility tools collection - Network speed monitor and more system utilities",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "os-util": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm run clean"
+  },
+  "keywords": [
+    "network",
+    "speed",
+    "monitor",
+    "bandwidth",
+    "cli",
+    "typescript"
+  ],
+  "author": "Network Speed Monitor",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "commander": "^11.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
+  }
+}

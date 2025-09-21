@@ -1,0 +1,89 @@
+.netspeed-label {
+    min-width: 7em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.netspeed-label-wide {
+    min-width: 13em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.netspeed-label-1 {
+    min-width: 7em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.netspeed-label-wide-1 {
+    min-width: 13em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.netspeed-label-2 {
+    min-width: 7em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.netspeed-label-wide-2 {
+    min-width: 13em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.netspeed-label-3 {
+    min-width: 7em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.netspeed-label-wide-3 {
+    min-width: 13em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.netspeed-label-4 {
+    min-width: 7em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.netspeed-label-wide-4 {
+    min-width: 13em;
+    text-align: right;
+    margin-left: 2px;
+    margin-right: 4px;
+    font-size: 1.2em;
+    font-weight: bold;
+}

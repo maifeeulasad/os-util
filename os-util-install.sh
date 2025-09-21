@@ -7,12 +7,7 @@ set -e
 
 # Configuration
 EXTENSION_UUID="os-util@maifee.extension"
-EXTENSIOprint_success "Installation complete!"
-print_info "The extension will show network speed in your top panel."
-print_info "Usage:"
-print_info " -  Left click: Change display modes (bps, B/s, up/down, total)"
-print_info " -  Middle click: Change font size"
-print_info " -  Right click: Reset total counter (mode 4)""$HOME/.local/share/gnome-shell/extensions/$EXTENSION_UUID"
+EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_UUID"
 SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas"
 SOURCE_DIR="$(dirname "$0")"
 CLI_SOURCE_DIR="$(dirname "$0")"
@@ -40,6 +35,14 @@ print_warning() {
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
+
+# Configuration
+print_success "Installation complete!"
+print_info "The extension will show network speed in your top panel."
+print_info "Usage:"
+print_info " -  Left click: Change display modes (bps, B/s, up/down, total)"
+print_info " -  Middle click: Change font size"
+print_info " -  Right click: Reset total counter (mode 4)"
 
 # Check if source directory exists
 if [ ! -d "$SOURCE_DIR" ]; then

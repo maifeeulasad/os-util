@@ -67,11 +67,14 @@ export class ConfigManager {
     }
   }
 
+  /** Number of display modes (DisplayMode 0..5). */
+  private static readonly MODE_COUNT = 6;
+
   /**
    * Validate display mode
    */
   private validateMode(mode: unknown): mode is DisplayMode {
-    return typeof mode === 'number' && mode >= 0 && mode <= 4;
+    return typeof mode === 'number' && mode >= 0 && mode <= ConfigManager.MODE_COUNT - 1;
   }
 
   /**
@@ -150,7 +153,7 @@ export class ConfigManager {
    * Cycle to next display mode
    */
   public cycleMode(): DisplayMode {
-    const nextMode = (this.config.mode + 1) % 5 as DisplayMode;
+    const nextMode = (this.config.mode + 1) % ConfigManager.MODE_COUNT as DisplayMode;
     this.setMode(nextMode);
     return nextMode;
   }

@@ -124,11 +124,11 @@ class NetSpeedCLI {
    */
   public setConfig(options: { mode?: number; fontMode?: number; interval?: number }): void {
     if (options.mode !== undefined) {
-      if (options.mode >= 0 && options.mode <= 4) {
+      if (options.mode >= 0 && options.mode <= 5) {
         this.config.setMode(options.mode as DisplayMode);
         console.log(`Mode set to: ${options.mode} (${this.formatter.getModeDescription(options.mode as DisplayMode)})`);
       } else {
-        console.error('Invalid mode. Must be 0-4.');
+        console.error('Invalid mode. Must be 0-5.');
       }
     }
 
@@ -172,7 +172,7 @@ program
 program
   .command('monitor')
   .description('Start continuous network speed monitoring')
-  .option('-m, --mode <mode>', 'Display mode (0-4)', parseInt)
+  .option('-m, --mode <mode>', 'Display mode (0-5)', parseInt)
   .option('-i, --interval <seconds>', 'Refresh interval in seconds', parseInt)
   .option('-o, --once', 'Show speed once and exit')
   .action((options) => {
@@ -197,7 +197,7 @@ program
   .command('config')
   .description('Show or set configuration')
   .option('-s, --show', 'Show current configuration')
-  .option('-m, --mode <mode>', 'Set display mode (0-4)', parseInt)
+  .option('-m, --mode <mode>', 'Set display mode (0-5)', parseInt)
   .option('-f, --font-mode <fontMode>', 'Set font mode (0-4)', parseInt)
   .option('-i, --interval <seconds>', 'Set refresh interval (1-60)', parseInt)
   .action((options) => {

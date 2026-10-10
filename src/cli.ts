@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { NetworkMonitor } from './NetworkMonitor.js';
 import { SpeedFormatter, DisplayMode } from './SpeedFormatter.js';
@@ -11,6 +12,8 @@ class NetSpeedCLI {
   private config: ConfigManager;
   private isRunning: boolean = false;
   private intervalId: NodeJS.Timeout | null = null;
+  private outPath: string | null = null;
+  private quiet: boolean = false;
 
   constructor() {
     this.monitor = new NetworkMonitor();
@@ -21,7 +24,7 @@ class NetSpeedCLI {
   /**
    * Start continuous monitoring
    */
-  public startMonitoring(options: { mode?: DisplayMode; interval?: number; once?: boolean }): void {
+  public startMonitoring(options: { mode?: DisplayMode; interval?: number; once?: boolean; out?: string; quiet?: boolean }): void {
     if (this.isRunning) {
       console.log('Monitoring is already running. Use --stop to stop it first.');
       return;
@@ -29,16 +32,20 @@ class NetSpeedCLI {
 
     const mode = options.mode !== undefined ? options.mode : this.config.getMode();
     const interval = options.interval || this.config.getRefreshInterval();
+    this.outPath = options.out || null;
+    this.quiet = options.quiet === true;
 
     if (options.once) {
       this.displayCurrentSpeed(mode);
       return;
     }
 
-    console.log(`Starting network speed monitoring...`);
-    console.log(`Mode: ${this.formatter.getModeDescription(mode)}`);
-    console.log(`Refresh interval: ${interval} seconds`);
-    console.log(`Press Ctrl+C to stop\n`);
+    if (!this.quiet) {
+      console.log(`Starting network speed monitoring...`);
+      console.log(`Mode: ${this.formatter.getModeDescription(mode)}`);
+      console.log(`Refresh interval: ${interval} seconds`);
+      console.log(`Press Ctrl+C to stop\n`);
+    }
 
     this.isRunning = true;
 
@@ -89,8 +96,19 @@ class NetSpeedCLI {
         displayText = this.formatter.formatSpeed(stats, mode);
       }
 
-      const timestamp = new Date().toLocaleTimeString();
-      console.log(`[${timestamp}] ${displayText}`);
+      // Feed the overlay widget (or any external consumer) with just the text.
+      if (this.outPath) {
+        try {
+          writeFileSync(this.outPath, displayText, 'utf8');
+        } catch {
+          // A transient write failure (e.g. file locked) is non-fatal.
+        }
+      }
+
+      if (!this.quiet) {
+        const timestamp = new Date().toLocaleTimeString();
+        console.log(`[${timestamp}] ${displayText}`);
+      }
     } catch (error) {
       console.error('Error reading network stats:', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -175,6 +193,8 @@ program
   .option('-m, --mode <mode>', 'Display mode (0-5)', parseInt)
   .option('-i, --interval <seconds>', 'Refresh interval in seconds', parseInt)
   .option('-o, --once', 'Show speed once and exit')
+  .option('--out <path>', 'Write the latest reading (text only) to a file each tick (feeds the overlay widget)')
+  .option('--quiet', 'Suppress console output (useful with --out)')
   .action((options) => {
     cli.startMonitoring(options);
   });

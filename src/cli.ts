@@ -185,7 +185,7 @@ const cli = new NetSpeedCLI();
 program
   .name('netspeed')
   .description('Network speed monitor - TypeScript port of simplenetspeed GNOME extension')
-  .version('0.0.0');
+  .version('0.1.0');
 
 program
   .command('monitor')

@@ -8,5 +8,6 @@
   ],
   "url": "https://github.com/maifeeulasad/os-util",
   "uuid": "os-util@maifee.extension",
-  "version": 1
+  "version": 1,
+  "version-name": "0.1.0"
 }

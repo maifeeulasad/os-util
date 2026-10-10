@@ -1,6 +1,6 @@
 {
   "name": "os-util",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "OS utility tools collection - Network speed monitor and more system utilities",
   "main": "dist/index.js",
   "type": "module",

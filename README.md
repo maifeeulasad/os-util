@@ -1,15 +1,15 @@
 # OS Util
 
-A **cross-platform** collection of **system utility tools**, featuring a **GNOME Shell extension** for the Linux panel, a **Windows system-tray app** for the taskbar, and **Node.js CLI applications**. Currently includes network speed monitoring with plans for additional system utilities.
+A **cross-platform** collection of **system utility tools**, featuring a **GNOME Shell extension** for the Linux panel, a **Windows desktop widget** and **system-tray app** for the taskbar, and **Node.js CLI applications**. Currently includes network speed monitoring with plans for additional system utilities.
 
 ## 🧱 Architecture
 
 The monitoring core is platform-agnostic and shared by every frontend. Only the acquisition of raw OS byte counters differs per platform, isolated behind a small `NetworkStatsProvider` strategy (Dependency Inversion):
 
 ```
-                    ┌──────────────────────────────┐
-  Frontends         │  GNOME ext · Windows tray · CLI │
-                    └───────────────┬──────────────┘
+                    ┌────────────────────────────────────────┐
+  Frontends         │ GNOME ext · Windows tray · Widget · CLI │
+                    └────────────────────┬───────────────────┘
   Shared core        NetworkMonitor · SpeedFormatter · ConfigManager
                                      │
   Platform strategy        NetworkStatsProvider (interface)
@@ -40,9 +40,16 @@ Adding another OS means adding one provider and one factory case; the rest of th
 - **Activity indicators** (⇅ symbol when speed increases)
 - **Persistent settings** using GSettings
 
+### Windows Desktop Widget (always-on-top overlay)
+- **Floating, always-visible readout** - shows the full speed line without opening any menu
+- **Drag it anywhere** (dock it by the taskbar, a screen edge, wherever) - position is remembered
+- **Frameless and unobtrusive**, stays on top, right-click to reset position or close
+- **Optional auto-start** at login, launched console-less
+- A thin *view*: it runs the shared core as a `monitor --out` feed, so the TS core stays the single source of truth
+
 ### Windows System-Tray App
 - **Native Windows taskbar integration** - appears in the system tray (notification area)
-- **Live readout** in the tray tooltip (hover) and in the menu
+- **Live readout** in the tray tooltip (hover) and in the menu (click the top line to refresh)
 - **Menu controls**: cycle display mode, cycle refresh interval, reset the total counter, quit
 - **Optional auto-start** at login, installed as a console-less background app
 - Reuses the exact same monitoring core as the CLI and GNOME extension
@@ -62,30 +69,36 @@ Adding another OS means adding one provider and one factory case; the rest of th
 - **GNOME Shell** 46+ (Linux extension only)
 - **Windows 10/11** with PowerShell (Windows tray app only — uses the built-in `Get-NetAdapterStatistics` cmdlet)
 
-### Install on Windows (Tray App + CLI)
+### Install on Windows (Widget + Tray + CLI)
 
 From the project folder in PowerShell:
 
 ```powershell
-# Builds the project, installs the `os-util` CLI on your PATH,
-# and sets up the system-tray app (prompts for auto-start at login).
+# Builds the project, installs the `os-util` CLI on your PATH, and sets up
+# the desktop widget and system-tray app (prompts for auto-start + launch).
 ./os-util-install.ps1
 ```
 
-Then start the tray from the Start Menu entry, or launch it immediately:
+Launch the **desktop widget** (the always-on-top floating readout) any time:
+
+```powershell
+wscript "$env:LOCALAPPDATA\os-util\bin\os-util-widget.vbs"
+```
+
+Or the **system-tray** app:
 
 ```powershell
 wscript "$env:LOCALAPPDATA\os-util\bin\os-util-tray.vbs"
 ```
 
-Look for the up/down arrow icon in your taskbar tray. To uninstall:
+To uninstall:
 
 ```powershell
-./os-util-remove.ps1            # keep config
+./os-util-remove.ps1               # keep config
 ./os-util-remove.ps1 -PurgeConfig  # also remove ~/.config/os-util
 ```
 
-Non-interactive flags are available too: `./os-util-install.ps1 -AutoStart` (enable login start without prompting) and `-NoCli` (skip the PATH shim).
+Non-interactive flags: `-AutoStartWidget` and `-AutoStart` (enable login start for the widget / tray without prompting) and `-NoCli` (skip the PATH shim).
 
 ### Install GNOME Extension (Linux, Recommended)
 
@@ -171,6 +184,17 @@ os-util reset
 - **Mode 4**: `∑ 1.2GB` - Total downloaded (right-click to reset in GNOME)
 - **Mode 5**: `↓1.28M/s ↑288K/s ∑1.57M/s` - Up speed, down speed, and total **[DEFAULT]**
 
+### Windows Desktop Widget
+
+The widget is a small frameless overlay that floats on top of your other windows and shows the full reading continuously:
+
+- **Drag** it with the left mouse button to position it (e.g. just above the taskbar clock); the spot is remembered across restarts
+- **Right-click** for a menu: **Reset position** (back to top-right) or **Close widget**
+- It shows the current display mode's text (e.g. `↓1.28M/s ↑288K/s ∑1.57M/s`) and updates on the configured interval
+- Change the display mode / interval from the tray app or the CLI (`os-util config --mode 3`); the widget reflects it
+
+Run it directly during development with `pnpm run build` then `powershell -File os-util-widget.ps1`.
+
 ### Windows System-Tray App
 
 After installation the app lives in the taskbar tray (notification area), shown as an up/down arrow icon:
@@ -242,7 +266,7 @@ The CLI application stores configuration in `~/.config/os-util/config.json`:
 │   ├── tray/                   # Windows system-tray frontend
 │   │   ├── TrayApp.ts          # Tray app (reuses the shared core)
 │   │   └── index.ts            # Tray entry point
-│   ├── cli.ts                  # Command-line interface
+│   ├── cli.ts                  # Command-line interface (incl. --out widget feed)
 │   └── index.ts                # Library exports
 ├── assets/tray-icon.ico        # Generated tray icon
 ├── scripts/generate-tray-icon.mjs  # Tray icon generator
@@ -253,6 +277,7 @@ The CLI application stores configuration in `~/.config/os-util/config.json`:
 ├── schemas/                    # GSettings schemas
 ├── package.json                # Node.js project config
 ├── tsconfig.json               # TypeScript config
+├── os-util-widget.ps1          # Windows desktop widget (overlay view)
 ├── os-util-install.sh / .ps1   # Installation scripts (Linux / Windows)
 ├── os-util-remove.sh / .ps1    # Removal scripts (Linux / Windows)
 └── README.md                   # This file
@@ -334,18 +359,17 @@ The removal script will:
 
 ## 🆚 Feature Comparison
 
-| Feature | CLI Application | GNOME Extension | Windows Tray App |
-|---------|-----------------|-----------------|------------------|
-| Real-time monitoring | ✅ | ✅ | ✅ |
-| 6 display modes | ✅ | ✅ | ✅ |
-| Activity indicators | ✅ | ✅ | ✅ |
-| Font size options | ⚪ Config only | ✅ Interactive | ⚪ N/A |
-| Reset total counter | ✅ Command | ✅ Right-click | ✅ Menu |
-| Change mode / interval | ✅ Command | ✅ Click | ✅ Menu |
-| Persistent settings | ✅ JSON | ✅ GSettings | ✅ JSON |
-| System integration | ⚪ Terminal | ✅ Top panel | ✅ Taskbar tray |
-| Auto-start at login | ⚪ | ✅ | ✅ |
-| Platform | Linux / Windows / macOS | Linux | Windows |
+| Feature | CLI | GNOME Extension | Windows Tray | Windows Widget |
+|---------|-----|-----------------|--------------|----------------|
+| Real-time monitoring | ✅ | ✅ | ✅ | ✅ |
+| 6 display modes | ✅ | ✅ | ✅ | ✅ |
+| Always-visible readout | ⚪ Terminal | ✅ Panel | ⚪ Hover/menu | ✅ Floating overlay |
+| Reset total counter | ✅ Command | ✅ Right-click | ✅ Menu | ⚪ |
+| Change mode / interval | ✅ Command | ✅ Click | ✅ Menu | ⚪ Via tray/CLI |
+| Draggable positioning | ⚪ | ⚪ | ⚪ | ✅ |
+| Persistent settings | ✅ JSON | ✅ GSettings | ✅ JSON | ✅ JSON |
+| Auto-start at login | ⚪ | ✅ | ✅ | ✅ |
+| Platform | Linux / Windows / macOS | Linux | Windows | Windows |
 
 ## 🐛 Troubleshooting
 

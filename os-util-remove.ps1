@@ -24,21 +24,34 @@ function Write-Warn ($m) { Write-Host "[WARNING] $m" -ForegroundColor Yellow }
 $InstallRoot = Join-Path $env:LOCALAPPDATA 'os-util'
 $BinDir      = Join-Path $InstallRoot 'bin'
 $startup     = [Environment]::GetFolderPath('Startup')
-$lnkPath     = Join-Path $startup 'OS Util Tray.lnk'
+$shortcuts   = @(
+    (Join-Path $startup 'OS Util Tray.lnk'),
+    (Join-Path $startup 'OS Util Widget.lnk')
+)
 
-# --- Stop running tray processes -------------------------------------------
+# --- Stop running tray / widget processes ----------------------------------
 $stopped = 0
+# Tray + widget feed (node), and the widget's PowerShell host.
 Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -and $_.CommandLine -match 'tray[\\/]index\.js' } |
+    Where-Object { $_.CommandLine -and ($_.CommandLine -match 'tray[\\/]index\.js' -or $_.CommandLine -match 'os-util[\\/]speed\.txt') } |
     ForEach-Object {
         Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
         $stopped++
     }
-if ($stopped -gt 0) { Write-Ok "Stopped $stopped running tray process(es)." }
+Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -and $_.CommandLine -match 'os-util-widget\.ps1' } |
+    ForEach-Object {
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        $stopped++
+    }
+if ($stopped -gt 0) { Write-Ok "Stopped $stopped running process(es)." }
 
 # --- Remove auto-start + install files -------------------------------------
-if (Test-Path $lnkPath) { Remove-Item $lnkPath -Force; Write-Ok "Removed auto-start shortcut." }
-else { Write-Info 'No auto-start shortcut found.' }
+$removedLnk = $false
+foreach ($lnk in $shortcuts) {
+    if (Test-Path $lnk) { Remove-Item $lnk -Force; Write-Ok "Removed auto-start shortcut: $(Split-Path -Leaf $lnk)"; $removedLnk = $true }
+}
+if (-not $removedLnk) { Write-Info 'No auto-start shortcuts found.' }
 
 if (Test-Path $InstallRoot) {
     Remove-Item $InstallRoot -Recurse -Force

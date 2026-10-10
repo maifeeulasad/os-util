@@ -16,6 +16,8 @@
 param(
     # Install the tray auto-start entry without prompting.
     [switch]$AutoStart,
+    # Install the widget auto-start entry without prompting.
+    [switch]$AutoStartWidget,
     # Skip the CLI shim / PATH changes.
     [switch]$NoCli
 )
@@ -83,47 +85,76 @@ if (-not $NoCli) {
     Write-Info 'Skipping CLI shim (-NoCli).'
 }
 
-# --- Tray launcher (runs node without a console window) --------------------
-$vbsPath = Join-Path $BinDir 'os-util-tray.vbs'
+# --- Launchers (run hidden, no console window) -----------------------------
+$WScript = Join-Path $env:SystemRoot 'System32\wscript.exe'
+
+# Tray: launches node directly.
+$trayVbs = Join-Path $BinDir 'os-util-tray.vbs'
 @"
 ' Launches the OS Util tray app hidden (no console window).
 Set sh = CreateObject("WScript.Shell")
 sh.Run "node ""$DistTray""", 0, False
-"@ | Set-Content -Path $vbsPath -Encoding ascii
-Write-Ok "Installed tray launcher: $vbsPath"
+"@ | Set-Content -Path $trayVbs -Encoding ascii
+Write-Ok "Installed tray launcher: $trayVbs"
+
+# Widget: launches the PowerShell overlay hidden.
+$WidgetPs1 = Join-Path $ProjectDir 'os-util-widget.ps1'
+$widgetVbs = Join-Path $BinDir 'os-util-widget.vbs'
+@"
+' Launches the OS Util desktop widget hidden (no console window).
+Set sh = CreateObject("WScript.Shell")
+sh.Run "powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""$WidgetPs1""", 0, False
+"@ | Set-Content -Path $widgetVbs -Encoding ascii
+Write-Ok "Installed widget launcher: $widgetVbs"
 
 # --- Optional auto-start ---------------------------------------------------
 $startup = [Environment]::GetFolderPath('Startup')
-$lnkPath = Join-Path $startup 'OS Util Tray.lnk'
+$trayIcon = Join-Path $ProjectDir 'assets\tray-icon.ico'
 
-$enableAuto = $AutoStart
-if (-not $AutoStart) {
-    $answer = Read-Host 'Start the tray automatically when you log in? (y/N)'
-    $enableAuto = $answer -match '^[Yy]'
-}
-if ($enableAuto) {
+function New-StartupShortcut {
+    param([string]$Name, [string]$Vbs, [string]$Description)
     $shell = New-Object -ComObject WScript.Shell
-    $lnk = $shell.CreateShortcut($lnkPath)
-    $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\wscript.exe'
-    $lnk.Arguments  = "`"$vbsPath`""
+    $lnk = $shell.CreateShortcut((Join-Path $startup $Name))
+    $lnk.TargetPath       = $WScript
+    $lnk.Arguments        = "`"$Vbs`""
     $lnk.WorkingDirectory = $ProjectDir
-    $lnk.IconLocation = Join-Path $ProjectDir 'assets\tray-icon.ico'
-    $lnk.Description = 'OS Util network speed tray'
+    $lnk.IconLocation     = $trayIcon
+    $lnk.Description       = $Description
     $lnk.Save()
-    Write-Ok "Auto-start enabled: $lnkPath"
-} else {
-    Write-Info 'Auto-start not enabled.'
+    Write-Ok "Auto-start enabled: $(Join-Path $startup $Name)"
 }
+
+$autoWidget = $AutoStartWidget
+if (-not $AutoStartWidget) {
+    $autoWidget = (Read-Host 'Start the desktop WIDGET automatically when you log in? (y/N)') -match '^[Yy]'
+}
+if ($autoWidget) { New-StartupShortcut 'OS Util Widget.lnk' $widgetVbs 'OS Util network speed widget' }
+
+$autoTray = $AutoStart
+if (-not $AutoStart) {
+    $autoTray = (Read-Host 'Start the TRAY app automatically when you log in? (y/N)') -match '^[Yy]'
+}
+if ($autoTray) { New-StartupShortcut 'OS Util Tray.lnk' $trayVbs 'OS Util network speed tray' }
+
+if (-not $autoWidget -and -not $autoTray) { Write-Info 'Auto-start not enabled.' }
 
 Write-Ok 'Installation complete!'
 Write-Info 'Usage:'
-Write-Info "  - Tray:  start now with  ->  wscript `"$vbsPath`""
-Write-Info '  - CLI:   os-util monitor        (continuous)'
-Write-Info '  - CLI:   os-util monitor --once (one reading)'
-Write-Info '  - CLI:   os-util modes          (list display modes)'
+Write-Info "  - Widget: start now with  ->  wscript `"$widgetVbs`""
+Write-Info "  - Tray:   start now with  ->  wscript `"$trayVbs`""
+Write-Info '  - CLI:    os-util monitor        (continuous)'
+Write-Info '  - CLI:    os-util monitor --once (one reading)'
+Write-Info '  - CLI:    os-util modes          (list display modes)'
 
-$launchNow = Read-Host 'Launch the tray app now? (y/N)'
-if ($launchNow -match '^[Yy]') {
-    Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\wscript.exe') -ArgumentList "`"$vbsPath`""
-    Write-Ok 'Tray app launched - look for the up/down arrow icon in your taskbar tray.'
+$launchNow = Read-Host 'Launch now? ([w]idget / [t]ray / [n]one)'
+switch -Regex ($launchNow) {
+    '^[Ww]' {
+        Start-Process -FilePath $WScript -ArgumentList "`"$widgetVbs`""
+        Write-Ok 'Widget launched - drag it anywhere; right-click for options.'
+    }
+    '^[Tt]' {
+        Start-Process -FilePath $WScript -ArgumentList "`"$trayVbs`""
+        Write-Ok 'Tray app launched - look for the up/down arrow icon in your taskbar tray.'
+    }
+    default { Write-Info 'Nothing launched. Use the commands above when ready.' }
 }

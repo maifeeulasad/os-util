@@ -79,7 +79,12 @@ export class TrayApp {
   }
 
   private buildMenu() {
-    this.speedItem = { title: 'Loading…', tooltip: '', enabled: false };
+    this.speedItem = {
+      title: 'Loading…',
+      tooltip: 'Current network speed (click to refresh)',
+      enabled: true,
+      click: () => this.update()
+    };
     this.modeItem = {
       title: this.modeLabel(),
       tooltip: 'Cycle display mode',
@@ -146,29 +151,19 @@ export class TrayApp {
     this.tray?.sendAction({ type: 'update-item', item });
   }
 
-  /** Poll the current speed and reflect it in the menu item and tooltip. */
+  /**
+   * Poll the current speed and reflect it in the readout menu item.
+   *
+   * Only the single readout item is pushed (via `update-item`); rebuilding the
+   * whole menu on each tick is not reliably re-applied by the Windows tray
+   * helper once the menu has been rendered.
+   */
   private update(): void {
     if (!this.tray) return;
     const text = this.renderSpeed();
     this.speedItem.title = text;
-    this.tray.sendAction({
-      type: 'update-menu-and-item',
-      menu: {
-        icon: this.loadIcon(),
-        title: '',
-        tooltip: `OS Util — ${text}`,
-        items: [
-          this.speedItem,
-          SysTray.separator,
-          this.modeItem,
-          this.intervalItem,
-          this.resetItem,
-          SysTray.separator,
-          this.quitItem
-        ]
-      },
-      item: this.speedItem
-    });
+    this.speedItem.tooltip = text;
+    this.tray.sendAction({ type: 'update-item', item: this.speedItem }).catch(() => {});
   }
 
   private restartTimer(): void {

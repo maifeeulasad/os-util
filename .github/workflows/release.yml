@@ -1,0 +1,126 @@
+name: Release
+
+# Build the cross-platform artifacts and publish a GitHub Release.
+# Triggered by pushing a semver tag (e.g. v0.1.0), or manually.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            V="${GITHUB_REF_NAME#v}"
+          else
+            V="$(node -p "require('./package.json').version")"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+
+      - name: Package artifacts
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          mkdir -p release
+
+          # GNOME Shell extension (installable / extensions.gnome.org-ready)
+          zip -r "release/os-util-gnome-extension-$V.zip" \
+            extension.js metadata.json stylesheet.css schemas
+
+          # Linux bundle (GNOME extension + CLI + install scripts, prebuilt)
+          tar -czf "release/os-util-$V-linux.tar.gz" \
+            dist extension.js metadata.json stylesheet.css schemas \
+            os-util-install.sh os-util-remove.sh \
+            package.json pnpm-lock.yaml README.md LICENSE
+
+          # Windows bundle (tray + widget + CLI + install scripts, prebuilt)
+          zip -r "release/os-util-$V-windows.zip" \
+            dist assets \
+            os-util-install.ps1 os-util-remove.ps1 os-util-widget.ps1 \
+            package.json pnpm-lock.yaml README.md LICENSE
+
+      - name: Generate release notes body
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          cat > release/NOTES.md <<EOF
+          ## OS Util v$V
+
+          Cross-platform network speed monitor — one TypeScript core, many frontends:
+          a **GNOME Shell extension** (Linux panel), a **Windows system-tray app**, a
+          **Windows desktop widget** (always-on-top overlay), and a **CLI**.
+
+          ### Downloads
+
+          | File | Platform | Contents |
+          |------|----------|----------|
+          | \`os-util-$V-windows.zip\` | Windows 10/11 | Prebuilt CLI, tray app, desktop widget + \`os-util-install.ps1\` |
+          | \`os-util-$V-linux.tar.gz\` | Linux | GNOME extension, CLI + \`os-util-install.sh\` |
+          | \`os-util-gnome-extension-$V.zip\` | Linux (GNOME 45–47) | Just the GNOME Shell extension |
+
+          ### Install — Windows
+
+          \`\`\`powershell
+          # Extract the zip, then from that folder:
+          ./os-util-install.ps1
+          \`\`\`
+
+          Sets up the \`os-util\` CLI, the system-tray app, and the always-on-top
+          desktop widget (with optional auto-start at login). Requires Node.js 18+.
+
+          ### Install — Linux (GNOME)
+
+          \`\`\`bash
+          # Extract the tarball, then from that folder:
+          ./os-util-install.sh
+          \`\`\`
+
+          Installs the GNOME Shell extension (and optionally the CLI). Requires
+          GNOME Shell 45+.
+
+          ### Highlights
+          - 6 display modes (default: up speed, down speed, and total)
+          - Native per-platform data sources (\`/proc/net/dev\` on Linux,
+            \`Get-NetAdapterStatistics\` on Windows)
+          - Shared, platform-agnostic monitoring core (strategy/provider design)
+          EOF
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: OS Util ${{ steps.ver.outputs.tag }}
+          tag_name: ${{ steps.ver.outputs.tag }}
+          body_path: release/NOTES.md
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: |
+            release/os-util-*.zip
+            release/os-util-*.tar.gz

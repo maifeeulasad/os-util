@@ -16,7 +16,7 @@ export default class NetSpeedExtension extends Extension {
         const PREFS_SCHEMA = 'org.gnome.shell.extensions.os-util';
         this._settings = this.getSettings(PREFS_SCHEMA);
 
-        // 0: kbps 1: K/s 2: U:kbps D:kbps 3: U:K/s D:K/s 4: Total KB
+        // 0: bps 1: B/s 2: U/D bps 3: U/D B/s 4: Total downloaded 5: U/D/Total B/s
         this.mode = this._settings.get_int('mode');
         this.fontmode = this._settings.get_int('fontmode');
         
@@ -165,6 +165,9 @@ export default class NetSpeedExtension extends Extension {
                 }
                 this.ioSpeed.set_text("∑ " + this.speedToString(count - resetCount));
             }
+            else if (this.mode === 5) {
+                this.ioSpeed.set_text("↓" + this.speedToString(speed - speedUp) + " ↑" + this.speedToString(speedUp) + " ∑" + this.speedToString(speed));
+            }
 
             lastCount = count;
             lastCountUp = countUp;
@@ -184,7 +187,7 @@ export default class NetSpeedExtension extends Extension {
         if (this.mode === 0 || this.mode === 2) {
             speed_map = ["bps", "Kbps", "Mbps", "Gbps"];
         }
-        else if (this.mode === 1 || this.mode === 3) {
+        else if (this.mode === 1 || this.mode === 3 || this.mode === 5) {
             speed_map = ["B/s", "K/s", "M/s", "G/s"];
         }
         else if (this.mode === 4) {

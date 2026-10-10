@@ -109,7 +109,7 @@ Non-interactive flags are available too: `./os-util-install.ps1 -AutoStart` (ena
    gnome-extensions enable os-util@maifee.extension
    
    # Or use GNOME Extensions app
-   ````
+   ```
 
 ### Install CLI Only
 
@@ -120,17 +120,16 @@ If you only want the command-line version:
 pnpm install
 pnpm run build
 
-# Create executable
+# Create an executable launcher (adjust the path to this project)
 mkdir -p ~/.local/bin
-cat > ~/.local/bin/netspeed << 'EOF'
 cat > ~/.local/bin/os-util << 'EOF'
 #!/bin/bash
 exec node "/path/to/os-util/dist/cli.js" "$@"
 EOF
 chmod +x ~/.local/bin/os-util
-EOF
-chmod +x ~/.local/bin/netspeed
 ```
+
+On Windows, use `./os-util-install.ps1` instead (see [Install on Windows](#install-on-windows-tray-app--cli)).
 
 ## 🖥️ Usage
 

@@ -1,0 +1,19 @@
+# --- GitHub Linguist language detection -------------------------------------
+# Make the reported language reflect the actual (TypeScript) codebase.
+
+# The CLI and tray entrypoints begin with a `#!/usr/bin/env node` shebang.
+# Linguist classifies by shebang before extension, so without this override it
+# counts those .ts files as JavaScript. Force all TypeScript sources to be
+# detected as TypeScript regardless of shebang.
+*.ts linguist-language=TypeScript linguist-detectable=true
+
+# Exclude build output and lockfiles from language statistics.
+dist/** linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
+
+# Auxiliary, non-core files kept out of the language stats:
+#  - the icon generator is a one-off build tool
+#  - the GNOME Shell extension must ship as plain JavaScript (GNOME loads
+#    extension.js directly), so it is a platform shim rather than core code.
+scripts/*.mjs linguist-vendored=true
+extension.js  linguist-vendored=true

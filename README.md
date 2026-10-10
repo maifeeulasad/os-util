@@ -1,11 +1,30 @@
 # OS Util
 
-A comprehensive collection of **system utility tools** for Linux, featuring a **GNOME Shell extension** for the system panel and **Node.js CLI applications**. Currently includes network speed monitoring with plans for additional system utilities.
+A **cross-platform** collection of **system utility tools**, featuring a **GNOME Shell extension** for the Linux panel, a **Windows system-tray app** for the taskbar, and **Node.js CLI applications**. Currently includes network speed monitoring with plans for additional system utilities.
+
+## 🧱 Architecture
+
+The monitoring core is platform-agnostic and shared by every frontend. Only the acquisition of raw OS byte counters differs per platform, isolated behind a small `NetworkStatsProvider` strategy (Dependency Inversion):
+
+```
+                    ┌──────────────────────────────┐
+  Frontends         │  GNOME ext · Windows tray · CLI │
+                    └───────────────┬──────────────┘
+  Shared core        NetworkMonitor · SpeedFormatter · ConfigManager
+                                     │
+  Platform strategy        NetworkStatsProvider (interface)
+                          /                         \
+            LinuxNetworkStatsProvider      WindowsNetworkStatsProvider
+              (/proc/net/dev)               (Get-NetAdapterStatistics)
+```
+
+Adding another OS means adding one provider and one factory case; the rest of the code is untouched.
 
 ## 🚀 Current Features
 
 ### Network Speed Monitor
-- **GNOME Shell Extension** - Shows network speed in your top panel
+- **GNOME Shell Extension** (Linux) - Shows network speed in your top panel
+- **Windows System-Tray App** - The taskbar equivalent: live speed in the tray tooltip and menu
 - **Real-time monitoring** with 3-second refresh intervals
 - **6 display modes** with easy switching:
   1. Total net speed in bits per second (bps, Kbps, Mbps, Gbps)
@@ -21,8 +40,15 @@ A comprehensive collection of **system utility tools** for Linux, featuring a **
 - **Activity indicators** (⇅ symbol when speed increases)
 - **Persistent settings** using GSettings
 
+### Windows System-Tray App
+- **Native Windows taskbar integration** - appears in the system tray (notification area)
+- **Live readout** in the tray tooltip (hover) and in the menu
+- **Menu controls**: cycle display mode, cycle refresh interval, reset the total counter, quit
+- **Optional auto-start** at login, installed as a console-less background app
+- Reuses the exact same monitoring core as the CLI and GNOME extension
+
 ### CLI Application
-- **Cross-platform compatibility** (Linux, macOS, Windows with WSL)
+- **Cross-platform compatibility** - runs natively on Linux and Windows (no WSL needed), plus macOS/WSL
 - **Same display modes** as the GNOME extension
 - **Customizable refresh intervals**
 - **Configuration management** using JSON files
@@ -31,11 +57,37 @@ A comprehensive collection of **system utility tools** for Linux, featuring a **
 ## 📦 Installation
 
 ### Prerequisites
-- **Node.js** 18+ (for CLI application)
-- **pnpm** (for package management)
-- **GNOME Shell** 46+ (for GNOME extension)
+- **Node.js** 18+ (for CLI and Windows tray app)
+- **pnpm** (for package management; npm also works)
+- **GNOME Shell** 46+ (Linux extension only)
+- **Windows 10/11** with PowerShell (Windows tray app only — uses the built-in `Get-NetAdapterStatistics` cmdlet)
 
-### Install GNOME Extension (Recommended)
+### Install on Windows (Tray App + CLI)
+
+From the project folder in PowerShell:
+
+```powershell
+# Builds the project, installs the `os-util` CLI on your PATH,
+# and sets up the system-tray app (prompts for auto-start at login).
+./os-util-install.ps1
+```
+
+Then start the tray from the Start Menu entry, or launch it immediately:
+
+```powershell
+wscript "$env:LOCALAPPDATA\os-util\bin\os-util-tray.vbs"
+```
+
+Look for the up/down arrow icon in your taskbar tray. To uninstall:
+
+```powershell
+./os-util-remove.ps1            # keep config
+./os-util-remove.ps1 -PurgeConfig  # also remove ~/.config/os-util
+```
+
+Non-interactive flags are available too: `./os-util-install.ps1 -AutoStart` (enable login start without prompting) and `-NoCli` (skip the PATH shim).
+
+### Install GNOME Extension (Linux, Recommended)
 
 1. **Run the installation script:**
    ```bash
@@ -95,7 +147,7 @@ os-util monitor
 
 #### Advanced Usage
 ```bash
-# Monitor with specific mode (0-4)
+# Monitor with specific mode (0-5)
 os-util monitor --mode 2 --interval 5
 
 # Show speed once and exit
@@ -119,6 +171,20 @@ os-util reset
 - **Mode 3**: `↓1.28M/s ↑288K/s` - Up/down in Bytes per second
 - **Mode 4**: `∑ 1.2GB` - Total downloaded (right-click to reset in GNOME)
 - **Mode 5**: `↓1.28M/s ↑288K/s ∑1.57M/s` - Up speed, down speed, and total **[DEFAULT]**
+
+### Windows System-Tray App
+
+After installation the app lives in the taskbar tray (notification area), shown as an up/down arrow icon:
+
+- **Hover** the icon: the tooltip shows the current speed (e.g. `OS Util — ↓1.28M/s ↑288K/s ∑1.57M/s`)
+- **Click** the icon to open the menu:
+  - The top line shows the live speed
+  - **Mode: …** - cycle through the 6 display modes
+  - **Interval: Ns** - cycle the refresh interval (1 / 2 / 3 / 5 / 10 s)
+  - **Reset total counter** - reset the `∑` downloaded total (mode 4)
+  - **Quit** - exit the app
+
+Run it directly during development with `pnpm run tray` (after `pnpm run build`).
 
 ### GNOME Extension (Panel Integration)
 
@@ -165,22 +231,32 @@ The CLI application stores configuration in `~/.config/os-util/config.json`:
 ### Project Structure
 ```
 /
-├── src/                    # TypeScript source files
-│   ├── NetworkMonitor.ts   # Core network statistics parsing
-│   ├── SpeedFormatter.ts   # Display formatting and modes
-│   ├── ConfigManager.ts    # Configuration management
-│   ├── cli.ts             # Command-line interface
-│   └── index.ts           # Library exports
-├── dist/                  # Compiled JavaScript
-├── extension.js           # GNOME Shell extension
-├── metadata.json          # Extension metadata
-├── stylesheet.css         # Extension styling
-├── schemas/               # GSettings schemas
-├── package.json           # Node.js project config
-├── tsconfig.json          # TypeScript config
-├── os-util-install.sh  # Installation script
-├── os-util-remove.sh   # Removal script
-└── README.md              # This file
+├── src/                        # TypeScript source files
+│   ├── NetworkMonitor.ts       # Speed calculation (delegates reads to a provider)
+│   ├── SpeedFormatter.ts       # Display formatting and modes
+│   ├── ConfigManager.ts        # Configuration management
+│   ├── providers/              # Platform strategy for reading raw byte counters
+│   │   ├── NetworkStatsProvider.ts        # Interface
+│   │   ├── LinuxNetworkStatsProvider.ts   # /proc/net/dev
+│   │   ├── WindowsNetworkStatsProvider.ts # Get-NetAdapterStatistics (PowerShell)
+│   │   └── index.ts                       # createNetworkStatsProvider() factory
+│   ├── tray/                   # Windows system-tray frontend
+│   │   ├── TrayApp.ts          # Tray app (reuses the shared core)
+│   │   └── index.ts            # Tray entry point
+│   ├── cli.ts                  # Command-line interface
+│   └── index.ts                # Library exports
+├── assets/tray-icon.ico        # Generated tray icon
+├── scripts/generate-tray-icon.mjs  # Tray icon generator
+├── dist/                       # Compiled JavaScript
+├── extension.js                # GNOME Shell extension (Linux)
+├── metadata.json               # Extension metadata
+├── stylesheet.css              # Extension styling
+├── schemas/                    # GSettings schemas
+├── package.json                # Node.js project config
+├── tsconfig.json               # TypeScript config
+├── os-util-install.sh / .ps1   # Installation scripts (Linux / Windows)
+├── os-util-remove.sh / .ps1    # Removal scripts (Linux / Windows)
+└── README.md                   # This file
 ```
 
 ### Build Commands
@@ -216,7 +292,9 @@ node dist/cli.js config --show
 ## 🔧 Technical Details
 
 ### Network Interface Filtering
-Both the CLI and GNOME extension filter out virtual and loopback interfaces:
+Virtual and loopback interfaces are excluded so only real traffic is counted.
+
+**Linux** (`LinuxNetworkStatsProvider`) filters by name, matching the original extension:
 - `lo` - Loopback interface
 - `ifb*` - Intermediate Functional Block (traffic shaping)
 - `lxdbr*` - LXD bridge interfaces
@@ -226,11 +304,14 @@ Both the CLI and GNOME extension filter out virtual and loopback interfaces:
 - `tun*` - Tunnel interfaces
 - `tap*` - TAP interfaces
 
+**Windows** (`WindowsNetworkStatsProvider`) restricts to adapters that are **physical** and **up**, which naturally excludes loopback, disconnected, VPN, Hyper-V, WSL and bridge adapters.
+
 ### Data Source
-The application reads network statistics from `/proc/net/dev`, parsing:
-- **RX bytes** (received/download)
-- **TX bytes** (transmitted/upload)
-- **Interface names** for filtering
+Each platform provides raw cumulative **RX bytes** (download) and **TX bytes** (upload), summed across the relevant interfaces:
+- **Linux**: reads `/proc/net/dev`
+- **Windows**: queries PowerShell's `Get-NetAdapterStatistics` (filtered by `Get-NetAdapter -Physical`)
+
+The shared `NetworkMonitor` then computes speed from the deltas, so the calculation and formatting are identical on every platform.
 
 ### Speed Calculation
 Speed is calculated as: `(current_bytes - previous_bytes) / time_interval`
@@ -254,17 +335,18 @@ The removal script will:
 
 ## 🆚 Feature Comparison
 
-| Feature | CLI Application | Original GNOME Extension |
-|---------|----------------|--------------------------|
-| Real-time monitoring | ✅ | ✅ |
-| 5 display modes | ✅ | ✅ |
-| Activity indicators | ✅ | ✅ |
-| Font size options | ⚪ Config only | ✅ Interactive |
-| Reset total counter | ✅ Command | ✅ Right-click |
-| Persistent settings | ✅ JSON | ✅ GSettings |
-| System integration | ⚪ Terminal | ✅ Top panel |
-| Cross-platform | ✅ | ⚪ Linux only |
-| Installation method | ✅ Script | ⚪ Manual or extensions.gnome.org |
+| Feature | CLI Application | GNOME Extension | Windows Tray App |
+|---------|-----------------|-----------------|------------------|
+| Real-time monitoring | ✅ | ✅ | ✅ |
+| 6 display modes | ✅ | ✅ | ✅ |
+| Activity indicators | ✅ | ✅ | ✅ |
+| Font size options | ⚪ Config only | ✅ Interactive | ⚪ N/A |
+| Reset total counter | ✅ Command | ✅ Right-click | ✅ Menu |
+| Change mode / interval | ✅ Command | ✅ Click | ✅ Menu |
+| Persistent settings | ✅ JSON | ✅ GSettings | ✅ JSON |
+| System integration | ⚪ Terminal | ✅ Top panel | ✅ Taskbar tray |
+| Auto-start at login | ⚪ | ✅ | ✅ |
+| Platform | Linux / Windows / macOS | Linux | Windows |
 
 ## 🐛 Troubleshooting
 
@@ -319,7 +401,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Original [Simple Net Speed](https://github.com/biji/simplenetspeed) GNOME extension by biji
+- Original [Simple Net Speed](https://github.com/biji/simplenetspeed) GNOME extension by biji — the Linux `/proc/net/dev` parsing and interface filtering are ported from it
+- [`systray2`](https://github.com/felixhao28/node-systray) by felixhao28 et al. — powers the Windows system-tray app
+- Microsoft's [`Get-NetAdapterStatistics`](https://learn.microsoft.com/powershell/module/netadapter/get-netadapterstatistics) cmdlet — the Windows byte-counter data source
 - GNOME Shell Extensions documentation and community
 - Node.js and TypeScript communities
 

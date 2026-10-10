@@ -1,4 +1,5 @@
-import { readFileSync } from 'fs';
+import { NetworkStatsProvider } from './providers/NetworkStatsProvider.js';
+import { createNetworkStatsProvider } from './providers/index.js';
 
 export interface NetworkStats {
   totalBytes: number;
@@ -17,55 +18,24 @@ export class NetworkMonitor {
   private lastStats: NetworkStats | null = null;
   private lastTimestamp: number = 0;
   private resetTotalCount: number = 0;
+  private readonly provider: NetworkStatsProvider;
 
   /**
-   * Parse /proc/net/dev to get network statistics
-   * Filters out loopback and virtual interfaces like the original extension
+   * @param provider Strategy used to read raw byte counters from the host OS.
+   *   Defaults to the provider selected for the current platform, so existing
+   *   callers (`new NetworkMonitor()`) keep working while becoming
+   *   cross-platform. A specific provider can be injected for testing or to
+   *   force a particular platform's behaviour.
+   */
+  constructor(provider: NetworkStatsProvider = createNetworkStatsProvider()) {
+    this.provider = provider;
+  }
+
+  /**
+   * Read current cumulative network statistics from the active provider.
    */
   private parseNetworkStats(): NetworkStats {
-    try {
-      const content = readFileSync('/proc/net/dev', 'utf8');
-      const lines = content.split('\n');
-
-      let totalBytes = 0;
-      let totalUploadBytes = 0;
-
-      for (const line of lines) {
-        const fields = line.trim().split(/\W+/);
-        if (fields.length <= 2) continue;
-
-        const interfaceName = fields[0];
-
-        // Filter out interfaces like the original extension
-        if (interfaceName === 'lo' ||
-          interfaceName.match(/^ifb[0-9]+/) ||    // traffictoll bandwidth manager
-          interfaceName.match(/^lxdbr[0-9]+/) ||  // lxd container manager
-          interfaceName.match(/^virbr[0-9]+/) ||  // virtual bridge
-          interfaceName.match(/^br[0-9]+/) ||     // bridge
-          interfaceName.match(/^vnet[0-9]+/) ||   // virtual network
-          interfaceName.match(/^tun[0-9]+/) ||    // tunnel
-          interfaceName.match(/^tap[0-9]+/)) {    // tap device
-          continue;
-        }
-
-        const rxBytes = parseInt(fields[1], 10);
-        const txBytes = parseInt(fields[9], 10);
-
-        if (!isNaN(rxBytes) && !isNaN(txBytes)) {
-          totalBytes += rxBytes + txBytes;
-          totalUploadBytes += txBytes;
-        }
-      }
-
-      return {
-        totalBytes,
-        totalUploadBytes,
-        totalDownloadBytes: totalBytes - totalUploadBytes
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to read network statistics: ${errorMessage}`);
-    }
+    return this.provider.read();
   }
 
   /**

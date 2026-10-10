@@ -1,8 +1,10 @@
 import { NetworkStatsProvider } from './NetworkStatsProvider.js';
 import { LinuxNetworkStatsProvider } from './LinuxNetworkStatsProvider.js';
+import { WindowsNetworkStatsProvider } from './WindowsNetworkStatsProvider.js';
 
 export { NetworkStatsProvider } from './NetworkStatsProvider.js';
 export { LinuxNetworkStatsProvider } from './LinuxNetworkStatsProvider.js';
+export { WindowsNetworkStatsProvider } from './WindowsNetworkStatsProvider.js';
 
 /**
  * Create the {@link NetworkStatsProvider} appropriate for the current operating
@@ -18,6 +20,8 @@ export function createNetworkStatsProvider(
   switch (platform) {
     case 'linux':
       return new LinuxNetworkStatsProvider();
+    case 'win32':
+      return new WindowsNetworkStatsProvider();
     default:
       throw new Error(
         `Unsupported platform "${platform}": no network stats provider is available.`

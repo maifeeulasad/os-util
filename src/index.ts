@@ -3,7 +3,8 @@ export { SpeedFormatter, DisplayMode } from './SpeedFormatter.js';
 export { ConfigManager } from './ConfigManager.js';
 export {
   createNetworkStatsProvider,
-  LinuxNetworkStatsProvider
+  LinuxNetworkStatsProvider,
+  WindowsNetworkStatsProvider
 } from './providers/index.js';
 export type { NetworkStatsProvider } from './providers/index.js';
 export type { NetworkStats, SpeedStats } from './NetworkMonitor.js';

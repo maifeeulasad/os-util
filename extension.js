@@ -38,7 +38,7 @@ export default class NetSpeedExtension extends Extension {
         });
 
         this.button.set_child(this.chooseLabel());
-        this.button.connect('button-press-event', this.changeMode.bind(this));
+        this._buttonPressId = this.button.connect('button-press-event', this.changeMode.bind(this));
 
         // Add to panel
         Main.panel._rightBox.insert_child_at_index(this.button, 0);
@@ -56,11 +56,19 @@ export default class NetSpeedExtension extends Extension {
         }
         
         if (this.button) {
+            if (this._buttonPressId) {
+                this.button.disconnect(this._buttonPressId);
+                this._buttonPressId = null;
+            }
             Main.panel._rightBox.remove_child(this.button);
+            if (this.ioSpeed) {
+                this.ioSpeed.destroy();
+                this.ioSpeed = null;
+            }
             this.button.destroy();
             this.button = null;
         }
-        
+
         this.ioSpeed = null;
         this._settings = null;
         
@@ -115,15 +123,33 @@ export default class NetSpeedExtension extends Extension {
     }
 
     parseStat() {
-        try {
-            const input_file = Gio.file_new_for_path('/proc/net/dev');
-            const [, contents] = input_file.load_contents(null);
-            const lines = new TextDecoder().decode(contents).split('\n');
+        // Read /proc/net/dev asynchronously so the shell compositor is never
+        // blocked on IO (EGO review guideline: avoid synchronous file IO).
+        const input_file = Gio.File.new_for_path('/proc/net/dev');
+        input_file.load_contents_async(null, (file, res) => {
+            try {
+                const [, contents] = file.load_contents_finish(res);
+                this._render(new TextDecoder().decode(contents));
+            } catch (e) {
+                console.error('NetSpeed Monitor error:', e);
+                if (this.ioSpeed) this.ioSpeed.set_text('Error');
+            }
+        });
 
-            let count = 0;
-            let countUp = 0;
-            
-            for (const line of lines) {
+        return GLib.SOURCE_CONTINUE;
+    }
+
+    _render(text) {
+        // The extension may have been disabled while the async read was in
+        // flight; bail out if our widgets are gone.
+        if (!this.ioSpeed) return;
+
+        const lines = text.split('\n');
+
+        let count = 0;
+        let countUp = 0;
+
+        for (const line of lines) {
                 const fields = line.trim().split(/\W+/);
                 if (fields.length <= 2) break;
 
@@ -169,15 +195,9 @@ export default class NetSpeedExtension extends Extension {
                 this.ioSpeed.set_text("↓" + this.speedToString(speed - speedUp) + " ↑" + this.speedToString(speedUp) + " ∑" + this.speedToString(speed));
             }
 
-            lastCount = count;
-            lastCountUp = countUp;
-            lastSpeed = speed;
-        } catch (e) {
-            console.error('NetSpeed Monitor error:', e);
-            this.ioSpeed.set_text('Error');
-        }
-
-        return GLib.SOURCE_CONTINUE;
+        lastCount = count;
+        lastCountUp = countUp;
+        lastSpeed = speed;
     }
 
     speedToString(amount) {
